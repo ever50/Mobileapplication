@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cal AI - Food Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .camera-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .camera-placeholder {
+            width: 100%;
+            height: 300px;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .camera-placeholder.active {
+            background-color: #000;
+        }
+
+        #preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        #capturedImage {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .camera-icon {
+            font-size: 48px;
+            color: #999;
+        }
+
+        .capture-btn {
+            background-color: #43cea2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .capture-btn:hover {
+            background-color: #3ab793;
+        }
+
+        .capture-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #43cea2;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .food-info {
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .food-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .nutrition-circles {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .nutrition-circle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+        }
+
+        .circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        .calories {
+            background: linear-gradient(135deg, #FF5F6D 0%, #FFC371 100%);
+        }
+
+        .protein {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .carbs {
+            background: linear-gradient(135deg, #396afc 0%, #2948ff 100%);
+        }
+
+        .fat {
+            background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%);
+        }
+
+        .nutrition-label {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .nutrition-details {
+            margin-top: 10px;
+        }
+
+        .nutrition-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .nutrition-item:last-child {
+            border-bottom: none;
+        }
+
+        .nutrition-item-name {
+            color: #555;
+        }
+
+        .nutrition-item-value {
+            font-weight: 600;
+        }
+
+        .new-scan-btn {
+            background-color: #185a9d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .new-scan-btn:hover {
+            background-color: #124e8a;
+        }
+
+        .nav-bar {
+            display: flex;
+            justify-content: space-around;
+            background-color: white;
+            padding: 15px 0;
+            border-top: 1px solid #eee;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .nav-item.active {
+            color: #43cea2;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+        
+        .upload-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        
+        .upload-btn {
+            background-color: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .upload-btn:hover {
+            background-color: #eee;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .error-message {
+            color: #ff3b30;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Cal AI</h1>
+        </div>
+        
+        <div class="content">
+            <div class="camera-section">
+                <div class="camera-placeholder" id="cameraPlaceholder">
+                    <div class="camera-icon" id="cameraIcon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <video id="preview" autoplay playsinline></video>
+                    <img id="capturedImage" alt="Captured food" />
+                </div>
+                
+                <div class="error-message" id="errorMessage">
+                    Camera access is required for food recognition
+                </div>
+                
+                <button class="capture-btn" id="captureBtn">
+                    <i class="fas fa-camera"></i> Take a Photo
+                </button>
+                
+                <div class="upload-section">
+                    <span>or</span>
+                    <label for="fileInput" class="upload-btn">
+                        <i class="fas fa-upload"></i> Upload Image
+                    </label>
+                    <input type="file" id="fileInput" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="results-section" id="loadingSection">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing your food...</p>
+                </div>
+            </div>
+            
+            <div class="results-section" id="resultsSection">
+                <div class="food-info">
+                    <h2 class="food-name" id="foodName">Mixed Salad Bowl</h2>
+                    
+                    <div class="nutrition-circles">
+                        <div class="nutrition-circle">
+                            <div class="circle calories" id="caloriesCircle">380</div>
+                            <div class="nutrition-label">Calories</div>
+                        </div>
+                        <div class="nutrition-circle">
+                            <div class="circle protein" id="proteinCircle">12g</div>
+                            <div class="nutrition-label">Protein</div>
+                        </div>
+                        <div class="nutrition-circle">
+                            <div class="circle carbs" id="carbsCircle">45g</div>
+                            <div class="nutrition-label">Carbs</div>
+                        </div>
+                        <div class="nutrition-circle">
+                            <div class="circle fat" id="fatCircle">18g</div>
+                            <div class="nutrition-label">Fat</div>
+                        </div>
+                    </div>
+                    
+                    <div class="nutrition-details">
+                        <div class="nutrition-item">
+                            <span class="nutrition-item-name">Dietary Fiber</span>
+                            <span class="nutrition-item-value" id="fiberValue">8g</span>
+                        </div>
+                        <div class="nutrition-item">
+                            <span class="nutrition-item-name">Sugars</span>
+                            <span class="nutrition-item-value" id="sugarValue">12g</span>
+                        </div>
+                        <div class="nutrition-item">
+                            <span class="nutrition-item-name">Sodium</span>
+                            <span class="nutrition-item-value" id="sodiumValue">520mg</span>
+                        </div>
+                        <div class="nutrition-item">
+                            <span class="nutrition-item-name">Cholesterol</span>
+                            <span class="nutrition-item-value" id="cholesterolValue">15mg</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="new-scan-btn" id="newScanBtn">
+                    Scan New Food
+                </button>
+            </div>
+        </div>
+        
+        <div class="nav-bar">
+            <div class="nav-item active">
+                <div class="nav-icon">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <span>Scan</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-history"></i>
+                </div>
+                <span>History</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <span>Insights</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>Profile</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Font Awesome for icons -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+            const cameraIcon = document.getElementById('cameraIcon');
+            const videoPreview = document.getElementById('preview');
+            const capturedImage = document.getElementById('capturedImage');
+            const captureBtn = document.getElementById('captureBtn');
+            const loadingSection = document.getElementById('loadingSection');
+            const resultsSection = document.getElementById('resultsSection');
+            const newScanBtn = document.getElementById('newScanBtn');
+            const fileInput = document.getElementById('fileInput');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Food result elements
+            const foodName = document.getElementById('foodName');
+            const caloriesCircle = document.getElementById('caloriesCircle');
+            const proteinCircle = document.getElementById('proteinCircle');
+            const carbsCircle = document.getElementById('carbsCircle');
+            const fatCircle = document.getElementById('fatCircle');
+            const fiberValue = document.getElementById('fiberValue');
+            const sugarValue = document.getElementById('sugarValue');
+            const sodiumValue = document.getElementById('sodiumValue');
+            const cholesterolValue = document.getElementById('cholesterolValue');
+            
+            // Variables
+            let stream = null;
+            let cameraActive = false;
+            
+            // Mock food database for AI recognition simulation
+            const foodDatabase = [
+                {
+                    name: "Mixed Salad Bowl",
+                    calories: 380,
+                    protein: 12,
+                    carbs: 45,
+                    fat: 18,
+                    fiber: 8,
+                    sugar: 12,
+                    sodium: 520,
+                    cholesterol: 15
+                },
+                {
+                    name: "Grilled Chicken Breast",
+                    calories: 220,
+                    protein: 42,
+                    carbs: 0,
+                    fat: 5,
+                    fiber: 0,
+                    sugar: 0,
+                    sodium: 125,
+                    cholesterol: 125
+                },
+                {
+                    name: "Veggie Burger",
+                    calories: 320,
+                    protein: 15,
+                    carbs: 35,
+                    fat: 12,
+                    fiber: 6,
+                    sugar: 4,
+                    sodium: 450,
+                    cholesterol: 0
+                },
+                {
+                    name: "Greek Yogurt with Berries",
+                    calories: 180,
+                    protein: 20,
+                    carbs: 18,
+                    fat: 2,
+                    fiber: 3,
+                    sugar: 15,
+                    sodium: 80,
+                    cholesterol: 12
+                },
+                {
+                    name: "Oatmeal with Banana",
+                    calories: 290,
+                    protein: 8,
+                    carbs: 60,
+                    fat: 4,
+                    fiber: 7,
+                    sugar: 20,
+                    sodium: 10,
+                    cholesterol: 0
+                },
+                {
+                    name: "Pasta with Tomato Sauce",
+                    calories: 440,
+                    protein: 10,
+                    carbs: 85,
+                    fat: 6,
+                    fiber: 5,
+                    sugar: 10,
+                    sodium: 620,
+                    cholesterol: 0
+                },
+                {
+                    name: "Salmon Fillet",
+                    calories: 350,
+                    protein: 35,
+                    carbs: 0,
+                    fat: 22,
+                    fiber: 0,
+                    sugar: 0,
+                    sodium: 80,
+                    cholesterol: 95
+                }
+            ];
+            
+            // Start camera
+            function startCamera() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                        .then(function(mediaStream) {
+                            stream = mediaStream;
+                            videoPreview.srcObject = mediaStream;
+                            videoPreview.style.display = 'block';
+                            cameraIcon.style.display = 'none';
+                            captureBtn.disabled = false;
+                            cameraPlaceholder.classList.add('active');
+                            cameraActive = true;
+                            errorMessage.style.display = 'none';
+                        })
+                        .catch(function(error) {
+                            console.error('Could not access camera: ', error);
+                            errorMessage.style.display = 'block';
+                        });
+                } else {
+                    console.error('MediaDevices API not supported');
+                    errorMessage.style.display = 'block';
+                }
+            }
+            
+            // Stop camera
+            function stopCamera() {
+                if (stream) {
+                    stream.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                    videoPreview.srcObject = null;
+                    cameraActive = false;
+                }
+            }
+            
+            // Capture image
+            function captureImage() {
+                if (cameraActive) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = videoPreview.videoWidth;
+                    canvas.height = videoPreview.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
+                    
+                    capturedImage.src = canvas.toDataURL('image/jpeg');
+                    capturedImage.style.display = 'block';
+                    videoPreview.style.display = 'none';
+                    
+                    stopCamera();
+                    
+                    // Show loading and analyze food
+                    showLoading();
+                }
+            }
+            
+            // Process uploaded image
+            function processUploadedImage(file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    capturedImage.src = e.target.result;
+                    capturedImage.style.display = 'block';
+                    videoPreview.style.display = 'none';
+                    cameraIcon.style.display = 'none';
+                    cameraPlaceholder.classList.add('active');
+                    
+                    if (cameraActive) {
+                        stopCamera();
+                    }
+                    
+                    // Show loading and analyze food
+                    showLoading();
+                };
+                
+                reader.readAsDataURL(file);
+            }
+            
+            // Show loading section
+            function showLoading() {
+                loadingSection.style.display = 'block';
+                resultsSection.style.display = 'none';
+                
+                // Simulate AI processing delay
+                setTimeout(analyzeFood, 2000);
+            }
+            
+            // Analyze food with AI (simulated)
+            function analyzeFood() {
+                // In a real app, this would send the image to an AI API
+                // For demo purposes, we'll randomly select a food from our database
+                const randomIndex = Math.floor(Math.random() * foodDatabase.length);
+                const recognizedFood = foodDatabase[randomIndex];
+                
+                // Display results
+                foodName.textContent = recognizedFood.name;
+                caloriesCircle.textContent = recognizedFood.calories;
+                proteinCircle.textContent = recognizedFood.protein + 'g';
+                carbsCircle.textContent = recognizedFood.carbs + 'g';
+                fatCircle.textContent = recognizedFood.fat + 'g';
+                fiberValue.textContent = recognizedFood.fiber + 'g';
+                sugarValue.textContent = recognizedFood.sugar + 'g';
+                sodiumValue.textContent = recognizedFood.sodium + 'mg';
+                cholesterolValue.textContent = recognizedFood.cholesterol + 'mg';
+                
+                // Show results section
+                loadingSection.style.display = 'none';
+                resultsSection.style.display = 'block';
+            }
+            
+            // Reset to camera mode
+            function resetToCamera() {
+                capturedImage.style.display = 'none';
+                loadingSection.style.display = 'none';
+                resultsSection.style.display = 'none';
+                
+                startCamera();
+            }
+            
+            // Event listeners
+            captureBtn.addEventListener('click', function() {
+                if (!cameraActive) {
+                    startCamera();
+                } else {
+                    captureImage();
+                }
+            });
+            
+            newScanBtn.addEventListener('click', resetToCamera);
+            
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    processUploadedImage(e.target.files[0]);
+                }
+            });
+            
+            // Initialize app
+            startCamera();
+            
+            // In a real app, you would implement AI food recognition using a service like:
+            // 1. TensorFlow.js for client-side ML
+            // 2. Cloud Vision API or similar for server-side processing
+            // 3. Custom API endpoints to nutritional databases
+            
+            // Advanced AI food recognition would include:
+            // 1. Multi-item detection in a single photo
+            // 2. Portion size estimation
+            // 3. User feedback to improve accuracy over time
+            // 4. Local storage of recent foods for faster recognition
+        });
+    </script>
+</body>
+</html>
